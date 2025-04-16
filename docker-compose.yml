@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres
+    shm_size: 128mb
+    environment:
+      POSTGRES_PASSWORD: notsamsapw
+      POSTGRES_DB: notsamsa
+      POSTGRES_USER: notsamsa
+    ports:
+      - "5432:5432"
+    volumes:
+      - "pgdata:/var/lib/postgresql/data"
+  s3:
+    image: "bitnami/minio:latest"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - "s3data:/bitnami/minio/data"
+    environment:
+      MINIO_ROOT_USER: notsamsa
+      MINIO_ROOT_PASSWORD: notsamsapw
+      MINIO_DEFAULT_BUCKETS: notsamsa
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    restart: "unless-stopped"
+
+volumes:
+  pgdata:
+  s3data:
