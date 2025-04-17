@@ -19,6 +19,9 @@ type GlobalConfig struct {
 	UserHandler       *http.UserHandler
 	CollectionService *service.ImageCollectionService
 	CollectionHandler *http.CollectionHandler
+	ImageService      *service.ImageService
+	ImageHandler      *http.ImageHandler
+	AuthHandler       *http.AuthHandler
 	Router            *gin.Engine
 }
 
@@ -41,23 +44,23 @@ func main() {
 		CollectionService: &service.ImageCollectionService{
 			ImageCollectionRepository: gormstore.NewImageCollectionRepository(db),
 		},
+		ImageService: &service.ImageService{
+			ImageRepository: gormstore.NewImageRepository(db),
+			S3:              sss,
+		},
 	}
 
 	Config.UserHandler = http.NewUserHandler(Config.UserService)
 	Config.CollectionHandler = http.NewCollectionHandler(Config.CollectionService)
+	Config.AuthHandler = http.NewAuthHandler(Config.UserService)
+	Config.ImageHandler = http.NewImageHandler(Config.ImageService)
 	Config.Router = gin.Default()
 
-	Config.Router.POST("/user", Config.UserHandler.PostUserHandler)
-	Config.Router.GET("/user", Config.UserHandler.GetAllUsersHandler)
-	Config.Router.DELETE("/user/:userId", Config.UserHandler.DeleteUserHandler)
-	Config.Router.GET("/user/:userId", Config.UserHandler.GetUserHandler)
-	Config.Router.PUT("/user/:userId", Config.UserHandler.PutUserHandler)
-	Config.Router.POST("/user/:userId/changePassword", Config.UserHandler.ChangePasswordHandler)
-
-	Config.Router.GET("/collection/:collectionId", Config.CollectionHandler.GetCollection)
-	Config.Router.GET("/user/:userId/collection", Config.CollectionHandler.GetAllCollectionsOfUser)
-	Config.Router.POST("/collection", Config.CollectionHandler.PostImageCollection)
-	Config.Router.DELETE("/collection/:collectionId", Config.CollectionHandler.DeleteCollection)
+	http.InitialRouteSetup(Config.Router)
+	http.SetupUserRoutes(Config.Router, Config.UserHandler)
+	http.SetupCollectionRoutes(Config.Router, Config.CollectionHandler)
+	http.SetupAuthRoutes(Config.Router, Config.AuthHandler)
+	http.SetupImageRoutes(Config.Router, Config.ImageHandler)
 
 	if err := Config.Router.Run(":8080"); err != nil {
 		log.Fatal(err)

@@ -84,6 +84,17 @@ func (s *UserService) FindByMail(ctx context.Context, mail string) (*domain.User
 	return s.UserRepository.FindByMail(ctx, mail)
 }
 
+func (s *UserService) Authenticate(ctx context.Context, mail string, password string) (bool, error) {
+
+	user, err := s.FindByMail(ctx, mail)
+	if err != nil {
+		return false, err
+	}
+
+	return s.verifyPassword(password, user.Password), nil
+
+}
+
 func (s *UserService) hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {

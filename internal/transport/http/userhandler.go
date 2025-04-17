@@ -9,11 +9,6 @@ import (
 	"strconv"
 )
 
-type UserCreateRestModel struct {
-	Mail     string `json:"mail"`
-	Password string `json:"password"`
-}
-
 type UserPutRestModel struct {
 	Mail string `json:"mail"`
 }
@@ -31,25 +26,6 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{
 		UserService: userService,
 	}
-}
-
-func (userHandler *UserHandler) PostUserHandler(c *gin.Context) {
-
-	var user UserCreateRestModel
-	if err := c.ShouldBind(&user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	var newUser *domain.User = domain.NewUser(user.Mail, user.Password)
-
-	id, err := userHandler.UserService.Create(c, newUser)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
 func (userHandler *UserHandler) GetAllUsersHandler(c *gin.Context) {
