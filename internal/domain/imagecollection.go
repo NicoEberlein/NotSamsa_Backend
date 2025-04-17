@@ -6,8 +6,8 @@ import (
 
 type ImageCollection struct {
 	Id           string   `gorm:"type:uuid;primary_key" json:"id"`
-	OwnerId      string   `json:"ownerId"`
-	Owner        *User    `gorm:"foreignkey:OwnerId" json:"-"`
+	OwnerId      string   `json:"-"`
+	Owner        *User    `gorm:"foreignKey:OwnerId" json:"-"`
 	Name         string   `json:"name"`
 	Participants []*User  `gorm:"many2many:image_participants;" json:"-"`
 	Images       []*Image `json:"-"`
