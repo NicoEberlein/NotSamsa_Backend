@@ -5,7 +5,6 @@ import (
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
@@ -21,8 +20,7 @@ func NewCollectionHandler(collectionService *service.ImageCollectionService) *Co
 }
 
 type PostCollectionModel struct {
-	OwnerId string `json:"ownerId"`
-	Name    string `json:"name"`
+	Name string `json:"name"`
 }
 
 func (collectionHandler *CollectionHandler) PostImageCollection(c *gin.Context) {
@@ -32,8 +30,13 @@ func (collectionHandler *CollectionHandler) PostImageCollection(c *gin.Context) 
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
+	userId := c.GetString("user")
+	if len(userId) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user is required"})
+	}
+
 	collection := &domain.ImageCollection{
-		OwnerId: model.OwnerId,
+		OwnerId: userId,
 		Name:    model.Name,
 	}
 
@@ -47,7 +50,7 @@ func (collectionHandler *CollectionHandler) PostImageCollection(c *gin.Context) 
 
 func (collectionHandler *CollectionHandler) GetAllCollectionsOfUser(c *gin.Context) {
 
-	userId := c.Param("userId")
+	userId := c.GetString("user")
 	if len(userId) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
 	}
@@ -78,7 +81,7 @@ func (collectionHandler *CollectionHandler) DeleteCollection(c *gin.Context) {
 
 	err := collectionHandler.CollectionService.Delete(c, collectionId)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -98,7 +101,7 @@ func (collectionHandler *CollectionHandler) GetCollection(c *gin.Context) {
 	}
 	collection, err := collectionHandler.CollectionService.FindById(c, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

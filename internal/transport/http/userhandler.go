@@ -5,7 +5,6 @@ import (
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 )
@@ -79,7 +78,7 @@ func (userHandler *UserHandler) GetUserHandler(c *gin.Context) {
 
 	user, err := userHandler.UserService.FindById(c, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -98,7 +97,7 @@ func (userHandler *UserHandler) DeleteUserHandler(c *gin.Context) {
 
 	err := userHandler.UserService.Delete(c, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -126,7 +125,7 @@ func (userHandler *UserHandler) PutUserHandler(c *gin.Context) {
 	})
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -142,14 +141,14 @@ func (userHandler *UserHandler) ChangePasswordHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	id := c.Param("userId")
+	id := c.GetString("user")
 	if len(id) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be provided"})
 	}
 
 	err := userHandler.UserService.UpdatePassword(c, id, model.OldPassword, model.NewPassword)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

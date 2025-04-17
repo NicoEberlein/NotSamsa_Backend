@@ -30,7 +30,11 @@ func (r *UserRepository) FindById(ctx context.Context, id string) (*domain.User,
 	var entity domain.User
 
 	if err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error; err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		} else {
+			return nil, err
+		}
 	}
 
 	return &entity, nil
@@ -41,7 +45,11 @@ func (r *UserRepository) Create(ctx context.Context, entity *domain.User) error 
 
 	tx := r.db.WithContext(ctx).Create(entity)
 	if tx.Error != nil {
-		return tx.Error
+		if errors.Is(tx.Error, gorm.ErrDuplicatedKey) {
+			return domain.ErrDuplicateEntity
+		} else {
+			return tx.Error
+		}
 	}
 
 	return nil
@@ -64,7 +72,13 @@ func (r *UserRepository) Update(ctx context.Context, entity *domain.User) error 
 
 	tx := r.db.WithContext(ctx).Save(entity)
 	if tx.Error != nil {
-		return tx.Error
+		if errors.Is(tx.Error, gorm.ErrDuplicatedKey) {
+			return domain.ErrDuplicateEntity
+		} else if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrNotFound
+		} else {
+			return tx.Error
+		}
 	}
 	return nil
 
@@ -75,7 +89,11 @@ func (r *UserRepository) Delete(ctx context.Context, id string) error {
 	var entity domain.User
 	tx := r.db.WithContext(ctx).Delete(&entity, "id = ?", id)
 	if tx.Error != nil {
-		return tx.Error
+		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrNotFound
+		} else {
+			return tx.Error
+		}
 	}
 
 	if tx.RowsAffected == 0 {
@@ -92,7 +110,11 @@ func (r *UserRepository) FindByMail(ctx context.Context, mail string) (*domain.U
 	err := r.db.WithContext(ctx).Where("mail = ?", mail).First(&user).Error
 
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		} else {
+			return nil, err
+		}
 	}
 	return &user, nil
 }

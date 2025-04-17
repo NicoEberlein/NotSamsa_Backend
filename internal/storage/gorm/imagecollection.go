@@ -20,7 +20,11 @@ func (r *ImageCollectionRepository) FindById(ctx context.Context, id string) (*d
 	var entity domain.ImageCollection
 
 	if err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error; err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		} else {
+			return nil, err
+		}
 	}
 
 	return &entity, nil
@@ -43,7 +47,13 @@ func (r *ImageCollectionRepository) Create(ctx context.Context, entity *domain.I
 
 	tx := r.db.WithContext(ctx).Create(entity)
 	if tx.Error != nil {
-		return tx.Error
+		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrNotFound
+		} else if errors.Is(tx.Error, gorm.ErrDuplicatedKey) {
+			return domain.ErrDuplicateEntity
+		} else {
+			return tx.Error
+		}
 	}
 
 	return nil
@@ -54,8 +64,13 @@ func (r *ImageCollectionRepository) Update(ctx context.Context, entity *domain.I
 
 	tx := r.db.WithContext(ctx).Save(entity)
 	if tx.Error != nil {
-		return tx.Error
+		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrNotFound
+		} else {
+			return tx.Error
+		}
 	}
+
 	return nil
 
 }
@@ -65,11 +80,15 @@ func (r *ImageCollectionRepository) Delete(ctx context.Context, id string) error
 	var entity domain.ImageCollection
 	tx := r.db.WithContext(ctx).Delete(&entity, "id = ?", id)
 	if tx.Error != nil {
-		return tx.Error
+		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrNotFound
+		} else {
+			return tx.Error
+		}
 	}
 
 	if tx.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return domain.ErrNotFound
 	}
 
 	return nil
@@ -87,7 +106,11 @@ func (r *ImageCollectionRepository) FindByUser(ctx context.Context, userId strin
 		Find(&imageCollections)
 
 	if tx.Error != nil {
-		return nil, tx.Error
+		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrNotFound
+		} else {
+			return nil, tx.Error
+		}
 	}
 
 	return imageCollections, nil
