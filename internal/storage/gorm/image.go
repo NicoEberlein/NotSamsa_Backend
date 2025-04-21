@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type ImageRepository struct {
@@ -21,7 +22,10 @@ func (r *ImageRepository) FindById(ctx context.Context, id string) (*domain.Imag
 
 	var image *domain.Image
 
-	if err := r.db.WithContext(ctx).Preload("ImageCollection").First(&image, "id = ?", id).Error; err != nil {
+	if err := r.db.
+		WithContext(ctx).
+		Preload(clause.Associations).
+		First(&image, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, domain.ErrNotFound
 		} else {
@@ -86,7 +90,7 @@ func (r *ImageRepository) FindByCollection(ctx context.Context, collectionId str
 
 	tx := r.db.WithContext(ctx).
 		Model(&domain.Image{}).
-		Preload("ImageCollection").
+		Preload(clause.Associations).
 		Where("image_collection_id = ?", collectionId).
 		Find(&images)
 
