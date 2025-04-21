@@ -48,7 +48,7 @@ func (s *ImageService) FindById(ctx context.Context, id string) (*domain.Image, 
 func (s *ImageService) Create(ctx context.Context, image *domain.Image) error {
 	image.Id = uuid.New().String()
 
-	image.Path = fmt.Sprintf("collection/%s/image/%s", image.ImageCollectionId, image.Id)
+	image.Path = fmt.Sprintf("collection/%s/image/%s", image.CollectionId, image.Id)
 
 	_, err := s.S3.PutObject(
 		ctx,

@@ -7,25 +7,25 @@ import (
 )
 
 type Image struct {
-	Id                string          `gorm:"type:uuid;primary_key"`
-	ImageCollectionId string          `json:"-"`
-	ImageCollection   ImageCollection `gorm:"foreignKey:ImageCollectionId" json:"-"`
-	Path              string          `json:"-"`
-	Name              string
-	Size              int64
-	Format            string
-	UploadedAt        time.Time
-	ImageBinary       *bytes.Buffer `gorm:"-" json:"-"`
+	Id           string      `gorm:"type:uuid;primary_key"`
+	CollectionId string      `json:"-"`
+	Collection   *Collection `gorm:"foreignKey:CollectionId" json:"-"`
+	Path         string      `json:"-"`
+	Name         string
+	Size         int64
+	Format       string
+	UploadedAt   time.Time
+	ImageBinary  *bytes.Buffer `gorm:"-" json:"-"`
 }
 
-func NewImage(imageCollectionId string, format string, name string, size int64, uploadedAt time.Time, imageBinary *bytes.Buffer) *Image {
+func NewImage(collectionId string, format string, name string, size int64, uploadedAt time.Time, imageBinary *bytes.Buffer) *Image {
 	return &Image{
-		ImageCollectionId: imageCollectionId,
-		Format:            format,
-		UploadedAt:        uploadedAt,
-		Name:              name,
-		Size:              size,
-		ImageBinary:       imageBinary,
+		CollectionId: collectionId,
+		Format:       format,
+		UploadedAt:   uploadedAt,
+		Name:         name,
+		Size:         size,
+		ImageBinary:  imageBinary,
 	}
 }
 

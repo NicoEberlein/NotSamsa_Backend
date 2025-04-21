@@ -20,7 +20,7 @@ func GetDbConnection() *gorm.DB {
 	sqlDb.SetMaxOpenConns(100)
 	sqlDb.SetConnMaxLifetime(time.Hour)
 
-	if err = db.AutoMigrate(&domain.User{}, &domain.ImageCollection{}, &domain.Image{}); err != nil {
+	if err = db.AutoMigrate(&domain.User{}, &domain.Collection{}, &domain.Image{}); err != nil {
 		panic(err)
 	}
 

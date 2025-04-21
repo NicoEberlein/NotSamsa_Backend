@@ -15,9 +15,9 @@ func NewImageCollectionRepository(db *gorm.DB) domain.ImageCollectionRepository 
 	return &ImageCollectionRepository{db: db}
 }
 
-func (r *ImageCollectionRepository) FindById(ctx context.Context, id string) (*domain.ImageCollection, error) {
+func (r *ImageCollectionRepository) FindById(ctx context.Context, id string) (*domain.Collection, error) {
 
-	var entity domain.ImageCollection
+	var entity domain.Collection
 
 	if err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -32,7 +32,7 @@ func (r *ImageCollectionRepository) FindById(ctx context.Context, id string) (*d
 }
 
 func (r *ImageCollectionRepository) Exists(ctx context.Context, id string) (bool, error) {
-	var entity domain.ImageCollection
+	var entity domain.Collection
 	err := r.db.WithContext(ctx).First(&entity, "id = ?", id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -43,7 +43,7 @@ func (r *ImageCollectionRepository) Exists(ctx context.Context, id string) (bool
 	return true, nil
 }
 
-func (r *ImageCollectionRepository) Create(ctx context.Context, entity *domain.ImageCollection) error {
+func (r *ImageCollectionRepository) Create(ctx context.Context, entity *domain.Collection) error {
 
 	tx := r.db.WithContext(ctx).Create(entity)
 	if tx.Error != nil {
@@ -60,7 +60,7 @@ func (r *ImageCollectionRepository) Create(ctx context.Context, entity *domain.I
 
 }
 
-func (r *ImageCollectionRepository) Update(ctx context.Context, entity *domain.ImageCollection) error {
+func (r *ImageCollectionRepository) Update(ctx context.Context, entity *domain.Collection) error {
 
 	tx := r.db.WithContext(ctx).Save(entity)
 	if tx.Error != nil {
@@ -77,7 +77,7 @@ func (r *ImageCollectionRepository) Update(ctx context.Context, entity *domain.I
 
 func (r *ImageCollectionRepository) Delete(ctx context.Context, id string) error {
 
-	var entity domain.ImageCollection
+	var entity domain.Collection
 	tx := r.db.WithContext(ctx).Delete(&entity, "id = ?", id)
 	if tx.Error != nil {
 		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
@@ -95,13 +95,14 @@ func (r *ImageCollectionRepository) Delete(ctx context.Context, id string) error
 
 }
 
-func (r *ImageCollectionRepository) FindByUser(ctx context.Context, userId string) ([]*domain.ImageCollection, error) {
+func (r *ImageCollectionRepository) FindByUser(ctx context.Context, userId string) ([]*domain.Collection, error) {
 
-	imageCollections := make([]*domain.ImageCollection, 0)
+	imageCollections := make([]*domain.Collection, 0)
 
 	tx := r.db.WithContext(ctx).
 		Model(&domain.ImageCollection{}).
 		Preload("Owner").
+		Model(&domain.Collection{}).
 		Where("owner_id = ?", userId).
 		Find(&imageCollections)
 
