@@ -3,21 +3,10 @@ package http
 import (
 	"errors"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
 )
-
-type AuthHandler struct {
-	UserService *service.UserService
-}
-
-func NewAuthHandler(userService *service.UserService) *AuthHandler {
-	return &AuthHandler{
-		UserService: userService,
-	}
-}
 
 type LoginRequest struct {
 	Mail     string `json:"mail"`
@@ -29,7 +18,7 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
-func (authHandler *AuthHandler) Login(c *gin.Context) {
+func (h *Handler) Login(c *gin.Context) {
 
 	var loginRequest LoginRequest
 
@@ -38,7 +27,7 @@ func (authHandler *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	result, err := authHandler.UserService.Authenticate(c, loginRequest.Mail, loginRequest.Password)
+	result, err := h.UserService.Authenticate(c, loginRequest.Mail, loginRequest.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -48,7 +37,7 @@ func (authHandler *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := authHandler.UserService.FindByMail(c, loginRequest.Mail)
+	user, err := h.UserService.FindByMail(c, loginRequest.Mail)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
@@ -70,7 +59,7 @@ func (authHandler *AuthHandler) Login(c *gin.Context) {
 
 }
 
-func (authHandler *AuthHandler) Register(c *gin.Context) {
+func (h *Handler) Register(c *gin.Context) {
 
 	var user LoginRequest
 	if err := c.ShouldBind(&user); err != nil {
@@ -80,7 +69,7 @@ func (authHandler *AuthHandler) Register(c *gin.Context) {
 
 	var newUser *domain.User = domain.NewUser(user.Mail, user.Password)
 
-	id, err := authHandler.UserService.Create(c, newUser)
+	id, err := h.UserService.Create(c, newUser)
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})

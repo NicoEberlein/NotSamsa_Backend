@@ -3,7 +3,6 @@ package http
 import (
 	"errors"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -18,17 +17,7 @@ type UserChangePasswordRestModel struct {
 	NewPassword string `json:"newPassword"`
 }
 
-type UserHandler struct {
-	UserService *service.UserService
-}
-
-func NewUserHandler(userService *service.UserService) *UserHandler {
-	return &UserHandler{
-		UserService: userService,
-	}
-}
-
-func (userHandler *UserHandler) GetAllUsersHandler(c *gin.Context) {
+func (h *Handler) GetAllUsersHandler(c *gin.Context) {
 
 	page, err0 := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, err1 := strconv.Atoi(c.DefaultQuery("limit", "5"))
@@ -38,7 +27,7 @@ func (userHandler *UserHandler) GetAllUsersHandler(c *gin.Context) {
 		return
 	}
 
-	users, err := userHandler.UserService.FindAll(c)
+	users, err := h.UserService.FindAll(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
@@ -46,13 +35,13 @@ func (userHandler *UserHandler) GetAllUsersHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, Pageate(users, page, limit))
 }
 
-func (userHandler *UserHandler) GetUserHandler(c *gin.Context) {
+func (h *Handler) GetUserHandler(c *gin.Context) {
 	id := c.Param("userId")
 	if len(id) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
 	}
 
-	user, err := userHandler.UserService.FindById(c, id)
+	user, err := h.UserService.FindById(c, id)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -65,13 +54,13 @@ func (userHandler *UserHandler) GetUserHandler(c *gin.Context) {
 
 }
 
-func (userHandler *UserHandler) DeleteUserHandler(c *gin.Context) {
+func (h *Handler) DeleteUserHandler(c *gin.Context) {
 	id := c.Param("userId")
 	if len(id) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be provided"})
 	}
 
-	err := userHandler.UserService.Delete(c, id)
+	err := h.UserService.Delete(c, id)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -83,7 +72,7 @@ func (userHandler *UserHandler) DeleteUserHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"id": id})
 }
 
-func (userHandler *UserHandler) PutUserHandler(c *gin.Context) {
+func (h *Handler) PutUserHandler(c *gin.Context) {
 	var user UserPutRestModel
 
 	if err := c.ShouldBind(&user); err != nil {
@@ -95,7 +84,7 @@ func (userHandler *UserHandler) PutUserHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be provided"})
 	}
 
-	err := userHandler.UserService.UpdateUserDetails(c, &domain.User{
+	err := h.UserService.UpdateUserDetails(c, &domain.User{
 		Id:   id,
 		Mail: user.Mail,
 	})
@@ -111,7 +100,7 @@ func (userHandler *UserHandler) PutUserHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"id": id})
 }
 
-func (userHandler *UserHandler) ChangePasswordHandler(c *gin.Context) {
+func (h *Handler) ChangePasswordHandler(c *gin.Context) {
 	var model UserChangePasswordRestModel
 	if err := c.ShouldBind(&model); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -122,7 +111,7 @@ func (userHandler *UserHandler) ChangePasswordHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be provided"})
 	}
 
-	err := userHandler.UserService.UpdatePassword(c, id, model.OldPassword, model.NewPassword)
+	err := h.UserService.UpdatePassword(c, id, model.OldPassword, model.NewPassword)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

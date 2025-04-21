@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
 	"github.com/gin-gonic/gin"
 	"image"
 	"io"
@@ -18,17 +17,7 @@ import (
 	_ "image/png"
 )
 
-type ImageHandler struct {
-	ImageService *service.ImageService
-}
-
-func NewImageHandler(imageService *service.ImageService) *ImageHandler {
-	return &ImageHandler{
-		ImageService: imageService,
-	}
-}
-
-func (imageHandler *ImageHandler) UploadImage(c *gin.Context) {
+func (h *Handler) UploadImage(c *gin.Context) {
 	collectionId := c.Param("collectionId")
 	if len(collectionId) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "collection Id required"})
@@ -70,7 +59,7 @@ func (imageHandler *ImageHandler) UploadImage(c *gin.Context) {
 		imageModel := domain.NewImage(collectionId, format, file.Filename, int64(buf.Len()), time.Now(), &buf)
 		fmt.Printf("%+v \n", imageModel)
 
-		if err = imageHandler.ImageService.Create(c, imageModel); err != nil {
+		if err = h.ImageService.Create(c, imageModel); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusOK, gin.H{"message": "successfully created"})
@@ -78,14 +67,14 @@ func (imageHandler *ImageHandler) UploadImage(c *gin.Context) {
 	}
 }
 
-func (imageHandler *ImageHandler) DownloadImage(c *gin.Context) {
+func (h *Handler) DownloadImage(c *gin.Context) {
 
 	imageId := c.Param("imageId")
 	if len(imageId) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "image Id required"})
 	}
 
-	image, err := imageHandler.ImageService.FindById(c, imageId)
+	im, err := h.ImageService.FindById(c, imageId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
@@ -95,28 +84,29 @@ func (imageHandler *ImageHandler) DownloadImage(c *gin.Context) {
 		return
 	}
 
-	data := image.ImageBinary.Bytes()
+	data := im.ImageBinary.Bytes()
 	fmt.Println(len(data))
 
-	c.Writer.WriteHeader(http.StatusOK)
-	c.Header("Content-Disposition", "attachment; filename="+image.Name)
-	c.Header("Content-Type", fmt.Sprintf("image/%s", image.Format))
+	c.Header("Content-Disposition", "attachment; filename="+im.Name)
+	c.Header("Content-Type", fmt.Sprintf("im/%s", im.Format))
 	c.Header("Content-Length", fmt.Sprintf("%d", len(data)))
 
-	//c.DataFromReader(http.StatusOK, image.Size, fmt.Sprintf("image/%s", image.Format), image.ImageBinary, nil)
-	//c.Data(http.StatusOK, fmt.Sprintf("image/%s", image.Format), image.ImageBinary.Bytes())
 	_, err = c.Writer.Write(data)
-	fmt.Println(err)
+	if err != nil {
+		c.Writer.WriteHeader(http.StatusInternalServerError)
+	}
+	c.Writer.WriteHeader(http.StatusOK)
+
 }
 
-func (imageHandler *ImageHandler) DeleteImage(c *gin.Context) {
+func (h *Handler) DeleteImage(c *gin.Context) {
 
 	imageId := c.Param("imageId")
 	if len(imageId) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "image Id required"})
 	}
 
-	err := imageHandler.ImageService.Delete(c, imageId)
+	err := h.ImageService.Delete(c, imageId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
@@ -130,7 +120,7 @@ func (imageHandler *ImageHandler) DeleteImage(c *gin.Context) {
 
 }
 
-func (imageHandler *ImageHandler) GetImagesByCollection(c *gin.Context) {
+func (h *Handler) GetImagesByCollection(c *gin.Context) {
 
 	collectionId := c.Param("collectionId")
 	page, err0 := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -145,7 +135,7 @@ func (imageHandler *ImageHandler) GetImagesByCollection(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "collection Id required"})
 	}
 
-	images, err := imageHandler.ImageService.FindByCollection(c, collectionId)
+	images, err := h.ImageService.FindByCollection(c, collectionId)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -2,91 +2,43 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"math"
 )
 
-type Page[T any] struct {
-	Items       []T         `json:"items"`
-	PageDetails PageDetails `json:"pageDetails"`
+func (h *Handler) InitialRouteSetup() {
+	h.Router.Use(gin.Recovery())
+	h.Router.MaxMultipartMemory = 128 << 20
 }
 
-type PageDetails struct {
-	TotalItems  int `json:"totalItems"`
-	TotalPages  int `json:"totalPages"`
-	CurrentPage int `json:"currentPage"`
-	PageSize    int `json:"pageSize"`
-}
+func (h *Handler) SetupRoutes() {
 
-func Pageate[T any](items []T, page int, limit int) Page[T] {
+	h.Router.POST("/login", h.Login)
+	h.Router.POST("/register", h.Register)
 
-	var itemSlice []T
+	authGroup := h.Router.Group("")
+	authGroup.Use(h.Authenticator())
 
-	start := (page - 1) * limit
-	end := start + limit
-	if start > len(items) {
-		itemSlice = make([]T, 0)
-	}
-	if end > len(items) {
-		end = len(items)
-	}
-	itemSlice = items[start:end]
+	authGroup.GET("/users", h.GetAllUsersHandler)
+	authGroup.POST("/users/changePassword", h.ChangePasswordHandler)
 
-	return Page[T]{
-		Items: itemSlice,
-		PageDetails: PageDetails{
-			TotalItems:  len(itemSlice),
-			TotalPages:  int(math.Ceil(float64(len(items)) / float64(limit))),
-			CurrentPage: page,
-			PageSize:    limit,
-		},
-	}
-}
+	authGroup.DELETE("/users/:userId", h.DeleteUserHandler)
+	authGroup.GET("/users/:userId", h.GetUserHandler)
+	authGroup.PUT("/users/:userId", h.PutUserHandler)
 
-func InitialRouteSetup(router *gin.Engine) {
-	router.Use(gin.Recovery())
-	router.MaxMultipartMemory = 128 << 20
-}
+	authGroup.POST("/collections", h.PostImageCollection)
+	authGroup.GET("/collections", h.GetAllCollectionsOfUser)
 
-func SetupUserRoutes(router *gin.Engine, userHandler *UserHandler) {
+	// Check ownership
+	authGroup.DELETE("/collections/:collectionId", h.CheckCollectionOwnership(false), h.DeleteCollection)
 
-	userGroup := router.Group("/users")
-	userGroup.Use(Authenticatior())
+	mustBeParticipantGroup := authGroup.Group("")
+	mustBeParticipantGroup.Use(h.CheckCollectionOwnership(true))
 
-	userGroup.GET("/", userHandler.GetAllUsersHandler)
-	userGroup.DELETE("/:userId", userHandler.DeleteUserHandler)
-	userGroup.GET("/:userId", userHandler.GetUserHandler)
-	userGroup.PUT("/:userId", userHandler.PutUserHandler)
-	userGroup.POST("/changePassword", userHandler.ChangePasswordHandler)
+	// Check ownership or participant
+	mustBeParticipantGroup.GET("/collections/:collectionId", h.GetCollection)
 
-}
-
-func SetupCollectionRoutes(router *gin.Engine, collectionHandler *CollectionHandler) {
-
-	collectionsGroup := router.Group("/collections")
-	collectionsGroup.Use(Authenticatior())
-
-	collectionsGroup.GET("/:collectionId", collectionHandler.GetCollection)
-	collectionsGroup.POST("/", collectionHandler.PostImageCollection)
-	collectionsGroup.DELETE("/:collectionId", collectionHandler.DeleteCollection)
-	collectionsGroup.GET("/", Authenticatior(), collectionHandler.GetAllCollectionsOfUser)
-
-}
-
-func SetupAuthRoutes(router *gin.Engine, authHandler *AuthHandler) {
-
-	router.POST("/login", authHandler.Login)
-	router.POST("/register", authHandler.Register)
-
-}
-
-func SetupImageRoutes(router *gin.Engine, imageHandler *ImageHandler) {
-
-	imageGroup := router.Group("")
-	imageGroup.Use(Authenticatior())
-
-	router.POST("collection/:collectionId/upload", imageHandler.UploadImage)
-	imageGroup.GET("/collection/:collectionId/images", imageHandler.GetImagesByCollection)
-	imageGroup.GET("/images/:imageId/download", imageHandler.DownloadImage)
-	imageGroup.DELETE("/images/:imageId", imageHandler.DeleteImage)
+	mustBeParticipantGroup.POST("collection/:collectionId/images", h.UploadImage)
+	mustBeParticipantGroup.GET("/collection/:collectionId/images", h.GetImagesByCollection)
+	mustBeParticipantGroup.GET("/collection/:collectionId/images/:imageId", h.DownloadImage)
+	mustBeParticipantGroup.DELETE("/collection/:collectionId/images/:imageId", h.DeleteImage)
 
 }

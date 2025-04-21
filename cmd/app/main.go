@@ -16,12 +16,9 @@ type GlobalConfig struct {
 	DB                *gorm.DB
 	S3                *minio.Client
 	UserService       *service.UserService
-	UserHandler       *http.UserHandler
 	CollectionService *service.ImageCollectionService
-	CollectionHandler *http.CollectionHandler
 	ImageService      *service.ImageService
-	ImageHandler      *http.ImageHandler
-	AuthHandler       *http.AuthHandler
+	Handler           *http.Handler
 	Router            *gin.Engine
 }
 
@@ -50,17 +47,17 @@ func main() {
 		},
 	}
 
-	Config.UserHandler = http.NewUserHandler(Config.UserService)
-	Config.CollectionHandler = http.NewCollectionHandler(Config.CollectionService)
-	Config.AuthHandler = http.NewAuthHandler(Config.UserService)
-	Config.ImageHandler = http.NewImageHandler(Config.ImageService)
 	Config.Router = gin.Default()
 
-	http.InitialRouteSetup(Config.Router)
-	http.SetupUserRoutes(Config.Router, Config.UserHandler)
-	http.SetupCollectionRoutes(Config.Router, Config.CollectionHandler)
-	http.SetupAuthRoutes(Config.Router, Config.AuthHandler)
-	http.SetupImageRoutes(Config.Router, Config.ImageHandler)
+	Config.Handler = http.NewHandler(
+		Config.UserService,
+		Config.CollectionService,
+		Config.ImageService,
+		Config.Router,
+	)
+
+	Config.Handler.InitialRouteSetup()
+	Config.Handler.SetupRoutes()
 
 	if err := Config.Router.Run(":8080"); err != nil {
 		log.Fatal(err)
