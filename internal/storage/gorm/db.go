@@ -1,7 +1,6 @@
 package gormstore
 
 import (
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"time"
@@ -19,10 +18,6 @@ func GetDbConnection() *gorm.DB {
 	sqlDb.SetMaxIdleConns(10)
 	sqlDb.SetMaxOpenConns(100)
 	sqlDb.SetConnMaxLifetime(time.Hour)
-
-	if err = db.AutoMigrate(&domain.User{}, &domain.Collection{}, &domain.Image{}); err != nil {
-		panic(err)
-	}
 
 	return db
 }
