@@ -35,16 +35,22 @@ func main() {
 	Config = GlobalConfig{
 		DB: db,
 		S3: sss,
-		UserService: &service.UserService{
-			UserRepository: gormstore.NewUserRepository(db),
-		},
-		CollectionService: &service.ImageCollectionService{
-			ImageCollectionRepository: gormstore.NewImageCollectionRepository(db),
-		},
 		ImageService: &service.ImageService{
 			ImageRepository: gormstore.NewImageRepository(db),
 			S3:              sss,
 		},
+	}
+
+	userRepository := gormstore.NewUserRepository(Config.DB)
+	//userRepository := mock.NewUserRepository()
+
+	Config.UserService = &service.UserService{
+		UserRepository: userRepository,
+	}
+
+	Config.CollectionService = &service.CollectionService{
+		CollectionRepository: gormstore.NewImageCollectionRepository(db),
+		UserRepository:       userRepository,
 	}
 
 	Config.Router = gin.Default()
