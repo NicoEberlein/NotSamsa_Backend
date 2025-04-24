@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"net/http"
+	"net/mail"
 )
 
 type LoginRequest struct {
@@ -64,6 +65,11 @@ func (h *Handler) Register(c *gin.Context) {
 	var user LoginRequest
 	if err := c.ShouldBind(&user); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if _, err := mail.ParseAddress(user.Mail); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid mail address"})
 		return
 	}
 
