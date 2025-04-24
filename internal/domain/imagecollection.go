@@ -16,11 +16,13 @@ type Collection struct {
 	Images       []*Image `json:"-"`
 }
 
-type ImageCollectionRepository interface {
+type CollectionRepository interface {
 	FindById(ctx context.Context, id string) (*Collection, error)
 	Exists(ctx context.Context, id string) (bool, error)
 	Create(ctx context.Context, collection *Collection) error
 	Update(ctx context.Context, collection *Collection) error
 	Delete(ctx context.Context, id string) error
 	FindByUser(ctx context.Context, userId string) ([]*Collection, error)
+	AddParticipant(ctx context.Context, collectionId string, userId string) error
+	DeleteParticipant(ctx context.Context, collectionId string, userId string) error
 }

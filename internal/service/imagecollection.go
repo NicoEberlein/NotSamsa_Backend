@@ -6,31 +6,77 @@ import (
 	"github.com/google/uuid"
 )
 
-type ImageCollectionService struct {
-	ImageCollectionRepository domain.ImageCollectionRepository
+type CollectionService struct {
+	CollectionRepository domain.CollectionRepository
+	UserRepository       domain.UserRepository
 }
 
-func (s *ImageCollectionService) FindById(ctx context.Context, id string) (*domain.Collection, error) {
-	return s.ImageCollectionRepository.FindById(ctx, id)
+func (s *CollectionService) FindById(ctx context.Context, id string) (*domain.Collection, error) {
+	return s.CollectionRepository.FindById(ctx, id)
 }
 
-func (s *ImageCollectionService) Create(ctx context.Context, collection *domain.Collection) (string, error) {
+func (s *CollectionService) Create(ctx context.Context, collection *domain.Collection) (string, error) {
 	collection.Id = uuid.New().String()
-	if err := s.ImageCollectionRepository.Create(ctx, collection); err != nil {
+	if err := s.CollectionRepository.Create(ctx, collection); err != nil {
 		return "", err
 	} else {
 		return collection.Id, nil
 	}
 }
 
-func (s *ImageCollectionService) Update(ctx context.Context, collection *domain.Collection) error {
-	return s.ImageCollectionRepository.Update(ctx, collection)
+func (s *CollectionService) Patch(ctx context.Context, collection *domain.Collection) error {
+
+	collectionFromDb, err := s.CollectionRepository.FindById(ctx, collection.Id)
+	if err != nil {
+		return err
+	}
+
+	if len(collection.Name) > 0 {
+		collectionFromDb.Name = collection.Name
+	}
+
+	if len(collection.Description) > 0 {
+		collectionFromDb.Description = collection.Description
+	}
+
+	if collection.Longitude != nil && collection.Latitude != nil {
+		collectionFromDb.Longitude = collection.Longitude
+		collectionFromDb.Latitude = collection.Latitude
+	}
+
+	return s.CollectionRepository.Update(ctx, collectionFromDb)
 }
 
-func (s *ImageCollectionService) Delete(ctx context.Context, id string) error {
-	return s.ImageCollectionRepository.Delete(ctx, id)
+func (s *CollectionService) Delete(ctx context.Context, id string) error {
+	return s.CollectionRepository.Delete(ctx, id)
 }
 
-func (s *ImageCollectionService) FindByUser(ctx context.Context, userId string) ([]*domain.Collection, error) {
-	return s.ImageCollectionRepository.FindByUser(ctx, userId)
+func (s *CollectionService) FindByUser(ctx context.Context, userId string) ([]*domain.Collection, error) {
+	return s.CollectionRepository.FindByUser(ctx, userId)
+}
+
+func (s *CollectionService) AddParticipant(ctx context.Context, collectionId string, userId string) error {
+
+	if _, err := s.CollectionRepository.FindById(ctx, collectionId); err != nil {
+		return err
+	}
+
+	if _, err := s.UserRepository.FindById(ctx, userId); err != nil {
+		return err
+	}
+
+	return s.CollectionRepository.AddParticipant(ctx, collectionId, userId)
+}
+
+func (s *CollectionService) DeleteParticipant(ctx context.Context, collectionId string, userId string) error {
+
+	if _, err := s.CollectionRepository.FindById(ctx, collectionId); err != nil {
+		return err
+	}
+
+	if _, err := s.UserRepository.FindById(ctx, userId); err != nil {
+		return err
+	}
+
+	return s.CollectionRepository.DeleteParticipant(ctx, collectionId, userId)
 }

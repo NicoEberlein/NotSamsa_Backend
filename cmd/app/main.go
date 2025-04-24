@@ -16,7 +16,7 @@ type GlobalConfig struct {
 	DB                *gorm.DB
 	S3                *minio.Client
 	UserService       *service.UserService
-	CollectionService *service.ImageCollectionService
+	CollectionService *service.CollectionService
 	ImageService      *service.ImageService
 	Handler           *http.Handler
 	Router            *gin.Engine

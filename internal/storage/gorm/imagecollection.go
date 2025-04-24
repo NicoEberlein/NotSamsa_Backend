@@ -12,7 +12,7 @@ type ImageCollectionRepository struct {
 	db *gorm.DB
 }
 
-func NewImageCollectionRepository(db *gorm.DB) domain.ImageCollectionRepository {
+func NewImageCollectionRepository(db *gorm.DB) domain.CollectionRepository {
 	return &ImageCollectionRepository{db: db}
 }
 
@@ -118,4 +118,38 @@ func (r *ImageCollectionRepository) FindByUser(ctx context.Context, userId strin
 	}
 
 	return imageCollections, nil
+}
+
+func (r *ImageCollectionRepository) AddParticipant(ctx context.Context, collectionId string, userId string) error {
+
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Collection{Id: collectionId}).
+		Association("Participants").
+		Append(&domain.User{Id: userId}); err != nil {
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *ImageCollectionRepository) DeleteParticipant(ctx context.Context, collectionId string, userId string) error {
+	collection, err := r.FindById(ctx, collectionId)
+	if err != nil {
+		return err
+	}
+
+	if err := r.db.WithContext(ctx).
+		Model(collection).
+		Association("Participants").
+		Delete(&domain.User{Id: userId}); err != nil {
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return domain.ErrNotFound
+		} else {
+			return err
+		}
+	}
+
+	return nil
 }

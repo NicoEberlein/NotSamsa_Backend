@@ -8,14 +8,14 @@ import (
 
 type Handler struct {
 	UserService       *service.UserService
-	CollectionService *service.ImageCollectionService
+	CollectionService *service.CollectionService
 	ImageService      *service.ImageService
 	Router            *gin.Engine
 }
 
 func NewHandler(
 	userService *service.UserService,
-	collectionService *service.ImageCollectionService,
+	collectionService *service.CollectionService,
 	imageService *service.ImageService,
 	router *gin.Engine) *Handler {
 

@@ -91,7 +91,7 @@ func (r *ImageRepository) FindByCollection(ctx context.Context, collectionId str
 	tx := r.db.WithContext(ctx).
 		Model(&domain.Image{}).
 		Preload(clause.Associations).
-		Where("image_collection_id = ?", collectionId).
+		Where("collection_id = ?", collectionId).
 		Find(&images)
 
 	if tx.Error != nil {
