@@ -88,7 +88,7 @@ func (h *Handler) DownloadImage(c *gin.Context) {
 	fmt.Println(len(data))
 
 	c.Header("Content-Disposition", "attachment; filename="+im.Name)
-	c.Header("Content-Type", fmt.Sprintf("im/%s", im.Format))
+	c.Header("Content-Type", fmt.Sprintf("image/%s", im.Format))
 	c.Header("Content-Length", fmt.Sprintf("%d", len(data)))
 
 	_, err = c.Writer.Write(data)
