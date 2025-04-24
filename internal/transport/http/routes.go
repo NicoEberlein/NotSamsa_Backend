@@ -23,12 +23,19 @@ func (h *Handler) SetupRoutes() {
 	authGroup.DELETE("/users/:userId", h.DeleteUserHandler)
 	authGroup.GET("/users/:userId", h.GetUserHandler)
 	authGroup.PUT("/users/:userId", h.PutUserHandler)
+	authGroup.GET("/users/me", h.GetMeUser)
 
 	authGroup.POST("/collections", h.PostImageCollection)
 	authGroup.GET("/collections", h.GetAllCollectionsOfUser)
 
+	mustBeOwnerGroup := authGroup.Group("")
+	mustBeOwnerGroup.Use(h.CheckCollectionOwnership(false))
+
 	// Check ownership
-	authGroup.DELETE("/collections/:collectionId", h.CheckCollectionOwnership(false), h.DeleteCollection)
+	mustBeOwnerGroup.DELETE("/collections/:collectionId", h.DeleteCollection)
+	mustBeOwnerGroup.PATCH("/collections/:collectionId", h.PatchCollection) // todo implement
+	mustBeOwnerGroup.POST("/collections/:collectionId/participants", h.AddParticipant)
+	mustBeOwnerGroup.DELETE("/collections/:collectionId/participants/:participantId", h.DeleteParticipant)
 
 	mustBeParticipantGroup := authGroup.Group("")
 	mustBeParticipantGroup.Use(h.CheckCollectionOwnership(true))
@@ -36,9 +43,11 @@ func (h *Handler) SetupRoutes() {
 	// Check ownership or participant
 	mustBeParticipantGroup.GET("/collections/:collectionId", h.GetCollection)
 
-	mustBeParticipantGroup.POST("collection/:collectionId/images", h.UploadImage)
-	mustBeParticipantGroup.GET("/collection/:collectionId/images", h.GetImagesByCollection)
-	mustBeParticipantGroup.GET("/collection/:collectionId/images/:imageId", h.DownloadImage)
-	mustBeParticipantGroup.DELETE("/collection/:collectionId/images/:imageId", h.DeleteImage)
+	mustBeParticipantGroup.POST("collections/:collectionId/images", h.UploadImage)
+	mustBeParticipantGroup.GET("/collections/:collectionId/images", h.GetImagesByCollection)
+	mustBeParticipantGroup.GET("/collections/:collectionId/images/:imageId", h.DownloadImage)
+	mustBeParticipantGroup.DELETE("/collections/:collectionId/images/:imageId", h.DeleteImage)
+
+	mustBeParticipantGroup.GET("/collections/:collectionId/participants", h.GetParticipants)
 
 }

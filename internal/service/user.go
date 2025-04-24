@@ -21,7 +21,9 @@ func (s *UserService) FindById(ctx context.Context, id string) (*domain.User, er
 }
 
 func (s *UserService) Create(ctx context.Context, user *domain.User) (string, error) {
-	user.Id = uuid.New().String()
+	if user.Id == "" {
+		user.Id = uuid.New().String()
+	}
 	user.Password, _ = s.hashPassword(user.Password)
 	return user.Id, s.UserRepository.Create(ctx, user)
 }
@@ -52,9 +54,10 @@ func (s *UserService) UpdateUserDetails(ctx context.Context, user *domain.User) 
 	}
 
 	var newUser *domain.User = &domain.User{
-		Id:       user.Id,
-		Password: currentUser.Password,
-		Mail:     user.Mail,
+		Id:              user.Id,
+		Password:        currentUser.Password,
+		Mail:            user.Mail,
+		HasVerifiedMail: user.HasVerifiedMail,
 	}
 
 	return s.UserRepository.Update(ctx, newUser)
