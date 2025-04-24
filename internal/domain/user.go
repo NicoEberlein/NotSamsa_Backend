@@ -5,9 +5,10 @@ import (
 )
 
 type User struct {
-	Id       string `gorm:"type:uuid;primary_key"`
-	Mail     string `gorm:"unique"`
-	Password string `json:"-"`
+	Id              string `gorm:"type:uuid;primary_key" json:"id"`
+	Mail            string `gorm:"unique;not null" json:"mail"`
+	HasVerifiedMail bool   `gorm:"default:false" json:"-"`
+	Password        string `gorm:"not null" json:"-"`
 }
 
 func NewUser(mail, password string) *User {
