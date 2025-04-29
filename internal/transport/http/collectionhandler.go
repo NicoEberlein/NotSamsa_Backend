@@ -40,8 +40,11 @@ func (h *Handler) PostImageCollection(c *gin.Context) {
 	}
 
 	collection := &domain.Collection{
-		Owner: user,
-		Name:  model.Name,
+		Owner:       user,
+		Name:        model.Name,
+		Description: model.Description,
+		Latitude:    model.Latitude,
+		Longitude:   model.Longitude,
 	}
 
 	id, err := h.CollectionService.Create(c, collection)
