@@ -1,12 +1,23 @@
 package http
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"time"
 )
 
 func (h *Handler) InitialRouteSetup() {
 	h.Router.Use(gin.Recovery())
 	h.Router.MaxMultipartMemory = 128 << 20
+
+	config := cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}
+	h.Router.Use(cors.New(config))
 }
 
 func (h *Handler) SetupRoutes() {
