@@ -13,7 +13,7 @@ func (h *Handler) Authenticator() gin.HandlerFunc {
 		authHeader := c.GetHeader("Authorization")
 
 		if len(authHeader) == 0 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, nil)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no token provided"})
 			return
 		}
 
@@ -21,7 +21,7 @@ func (h *Handler) Authenticator() gin.HandlerFunc {
 
 		userId, err := verifyToken(jwtToken)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, nil)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
 		}
 
 		c.Set("user", userId)
