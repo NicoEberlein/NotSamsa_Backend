@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
-	gormstore "github.com/NicoEberlein/NotSamsa_Backend/internal/storage/gorm"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/service"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/storage/gorm"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/transport/http"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/storage/s3"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/transport/http"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 	"gorm.io/gorm"
@@ -42,7 +42,6 @@ func main() {
 	}
 
 	userRepository := gormstore.NewUserRepository(Config.DB)
-	//userRepository := mock.NewUserRepository()
 
 	Config.UserService = &service.UserService{
 		UserRepository: userRepository,
