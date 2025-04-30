@@ -10,10 +10,11 @@ import (
 )
 
 type PostCollectionModel struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description,omitempty"`
-	Latitude    *float64 `json:"latitude,omitempty"`
-	Longitude   *float64 `json:"longitude,omitempty"`
+	Name           string   `json:"name"`
+	Description    string   `json:"description,omitempty"`
+	Latitude       *float64 `json:"latitude,omitempty"`
+	Longitude      *float64 `json:"longitude,omitempty"`
+	PreviewImageId *string  `json:"previewImageId,omitempty"`
 }
 
 type PostParticipantModel struct {
