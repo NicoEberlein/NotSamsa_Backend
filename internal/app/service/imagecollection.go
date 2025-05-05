@@ -2,17 +2,39 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
 	"github.com/google/uuid"
+	"github.com/minio/minio-go/v7"
+	"net/url"
+	"time"
 )
 
 type CollectionService struct {
 	CollectionRepository domain.CollectionRepository
 	UserRepository       domain.UserRepository
 }
+	ImageRepository      domain.ImageRepository
+	S3                   *minio.Client
+}
 
-func (s *CollectionService) FindById(ctx context.Context, id string) (*domain.Collection, error) {
-	return s.CollectionRepository.FindById(ctx, id)
+func (s *CollectionService) FindById(ctx context.Context, id string, userId *string) (*domain.Collection, error) {
+	collection, err := s.CollectionRepository.FindById(ctx, id)
+	s.populateWithPresignedURLs(ctx, collection)
+	if userId != nil {
+		s.setOwnerStatus(*userId, collection)
+	}
+
+	return collection, err
+}
+
+func (s *CollectionService) FindByUser(ctx context.Context, userId string) ([]*domain.Collection, error) {
+	collections, err := s.CollectionRepository.FindByUser(ctx, userId)
+	s.populateWithPresignedURLs(ctx, collections...)
+	s.setOwnerStatus(userId, collections...)
+
+	return collections, err
 }
 
 func (s *CollectionService) Create(ctx context.Context, collection *domain.Collection) (string, error) {
@@ -52,6 +74,19 @@ func (s *CollectionService) Patch(ctx context.Context, collection *domain.Collec
 }
 
 func (s *CollectionService) Delete(ctx context.Context, id string) error {
+
+	collection, err := s.CollectionRepository.FindById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	for _, image := range collection.Images {
+		err = s.ImageRepository.Delete(ctx, image.Id)
+		if err != nil {
+			return err
+		}
+	}
+
 	return s.CollectionRepository.Delete(ctx, id)
 }
 
