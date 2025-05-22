@@ -16,6 +16,8 @@ import (
 type PostProcessingHandlerModel struct {
 	GetFromPath string
 	SaveToPath  string
+	Width       int
+	Height      int
 }
 
 func (h *Handler) StartProcessingHandler(c *gin.Context) {
@@ -33,12 +35,12 @@ func (h *Handler) StartProcessingHandler(c *gin.Context) {
 		return
 	}
 
-	go resizeAndUpload(h.S3, body, 600, 300)
+	go resizeAndUpload(h.S3, body)
 
 	c.JSON(http.StatusAccepted, gin.H{"accepted": "image accepted"})
 }
 
-func resizeAndUpload(client *minio.Client, body PostProcessingHandlerModel, width int, height int) {
+func resizeAndUpload(client *minio.Client, body PostProcessingHandlerModel) {
 	obj, err := client.GetObject(context.Background(), "notsamsa", body.GetFromPath, minio.GetObjectOptions{})
 	if err != nil {
 		fmt.Println(err)
@@ -56,7 +58,7 @@ func resizeAndUpload(client *minio.Client, body PostProcessingHandlerModel, widt
 
 	var resizedBuf bytes.Buffer
 
-	resizedImage := imaging.Fill(im, width, height, imaging.Center, imaging.Lanczos)
+	resizedImage := imaging.Fill(im, body.Width, body.Height, imaging.Center, imaging.Lanczos)
 	if err = png.Encode(&resizedBuf, resizedImage); err != nil {
 		fmt.Println(err)
 	}

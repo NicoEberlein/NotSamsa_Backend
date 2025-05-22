@@ -21,6 +21,8 @@ import (
 type CreatePreviewBody struct {
 	GetFromPath string
 	SaveToPath  string
+	Width       int
+	Height      int
 }
 
 func (h *Handler) UploadImage(c *gin.Context) {
@@ -71,6 +73,8 @@ func (h *Handler) UploadImage(c *gin.Context) {
 			SetBody(&CreatePreviewBody{
 				GetFromPath: imageModel.Path,
 				SaveToPath:  strings.Replace(imageModel.Path, "images", "previews", 1),
+				Width:       600,
+				Height:      300,
 			}).Post("/generate-preview")
 
 		if err != nil {
