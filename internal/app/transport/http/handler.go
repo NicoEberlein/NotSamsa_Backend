@@ -61,10 +61,14 @@ func Pageate[T any](items []T, page int, limit int) Page[T] {
 	}
 	itemSlice = items[start:end]
 
+	if len(itemSlice) == 0 {
+		itemSlice = make([]T, 0)
+	}
+
 	return Page[T]{
 		Items: itemSlice,
 		PageDetails: PageDetails{
-			TotalItems:  len(itemSlice),
+			TotalItems:  len(items),
 			TotalPages:  int(math.Ceil(float64(len(items)) / float64(limit))),
 			CurrentPage: page,
 			PageSize:    limit,
