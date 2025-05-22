@@ -14,7 +14,6 @@ import (
 type CollectionService struct {
 	CollectionRepository domain.CollectionRepository
 	UserRepository       domain.UserRepository
-}
 	ImageRepository      domain.ImageRepository
 	S3                   *minio.Client
 }
@@ -90,21 +89,23 @@ func (s *CollectionService) Delete(ctx context.Context, id string) error {
 	return s.CollectionRepository.Delete(ctx, id)
 }
 
-func (s *CollectionService) FindByUser(ctx context.Context, userId string) ([]*domain.Collection, error) {
-	return s.CollectionRepository.FindByUser(ctx, userId)
-}
+func (s *CollectionService) AddParticipant(ctx context.Context, collectionId string, userMail string) error {
 
-func (s *CollectionService) AddParticipant(ctx context.Context, collectionId string, userId string) error {
-
-	if _, err := s.CollectionRepository.FindById(ctx, collectionId); err != nil {
+	collection, err := s.CollectionRepository.FindById(ctx, collectionId)
+	if err != nil {
 		return err
 	}
 
-	if _, err := s.UserRepository.FindById(ctx, userId); err != nil {
+	user, err := s.UserRepository.FindByMail(ctx, userMail)
+	if err != nil {
 		return err
 	}
 
-	return s.CollectionRepository.AddParticipant(ctx, collectionId, userId)
+	if collection.OwnerId == user.Id {
+		return errors.New("you can't add an account to his own collection")
+	}
+
+	return s.CollectionRepository.AddParticipant(ctx, collectionId, user.Id)
 }
 
 func (s *CollectionService) DeleteParticipant(ctx context.Context, collectionId string, userId string) error {
@@ -118,4 +119,31 @@ func (s *CollectionService) DeleteParticipant(ctx context.Context, collectionId 
 	}
 
 	return s.CollectionRepository.DeleteParticipant(ctx, collectionId, userId)
+}
+
+func (s *CollectionService) populateWithPresignedURLs(ctx context.Context, collections ...*domain.Collection) {
+	for _, collection := range collections {
+		if collection.PreviewImageId != nil {
+			url, err := s.S3.PresignedGetObject(
+				ctx,
+				"notsamsa",
+				fmt.Sprintf("collection/%s/previews/%s", collection.Id, *collection.PreviewImageId),
+				time.Minute*5,
+				make(url.Values),
+			)
+
+			if err != nil {
+				continue
+			}
+
+			urlString := url.String()
+			collection.PreviewImageUrl = &urlString
+		}
+	}
+}
+
+func (s *CollectionService) setOwnerStatus(userId string, collections ...*domain.Collection) {
+	for _, collection := range collections {
+		collection.OwnerStatus = collection.OwnerId == userId
+	}
 }

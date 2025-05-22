@@ -1,10 +1,8 @@
 package http
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"slices"
 	"strings"
 )
 
@@ -41,21 +39,22 @@ func (h *Handler) CheckCollectionOwnership(canBeParticipant bool) gin.HandlerFun
 		userId := c.GetString("user")
 		user, _ := h.UserService.FindById(c, userId)
 
-		collection, err := h.CollectionService.FindById(c, collectionId)
+		collection, err := h.CollectionService.FindById(c, collectionId, &userId)
 		if err != nil {
 			c.AbortWithStatus(http.StatusNotFound)
 		}
 
 		userHasAccess := false
 
-		fmt.Printf("%+v\n", collection)
-		fmt.Printf("%+v\n", user)
-
 		if collection.OwnerId == user.Id {
 			userHasAccess = true
 		}
-		if canBeParticipant && slices.Contains(collection.Participants, user) {
-			userHasAccess = true
+		if canBeParticipant {
+			for _, participant := range collection.Participants {
+				if participant.Id == user.Id {
+					userHasAccess = true
+				}
+			}
 		}
 
 		if userHasAccess {

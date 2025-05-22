@@ -35,10 +35,13 @@ func main() {
 	Config = GlobalConfig{
 		DB: db,
 		S3: sss,
-		ImageService: &service.ImageService{
-			ImageRepository: gormstore.NewImageRepository(db),
-			S3:              sss,
-		},
+	}
+
+	imageRepository := gormstore.NewImageRepository(Config.DB)
+
+	Config.ImageService = &service.ImageService{
+		ImageRepository: imageRepository,
+		S3:              sss,
 	}
 
 	userRepository := gormstore.NewUserRepository(Config.DB)
@@ -50,6 +53,8 @@ func main() {
 	Config.CollectionService = &service.CollectionService{
 		CollectionRepository: gormstore.NewImageCollectionRepository(db),
 		UserRepository:       userRepository,
+		ImageRepository:      imageRepository,
+		S3:                   Config.S3,
 	}
 
 	Config.Router = gin.Default()
