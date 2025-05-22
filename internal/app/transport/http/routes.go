@@ -14,6 +14,7 @@ func (h *Handler) InitialRouteSetup() {
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Disposition"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}
@@ -57,7 +58,7 @@ func (h *Handler) SetupRoutes() {
 	mustBeParticipantGroup.POST("collections/:collectionId/images", h.UploadImage)
 	mustBeParticipantGroup.GET("/collections/:collectionId/images", h.GetImagesByCollection)
 	mustBeParticipantGroup.GET("/collections/:collectionId/images/:imageId", h.CreateDownloadImage(false))
-	h.Router.GET("/collections/:collectionId/previews/:imageId", h.CreateDownloadImage(true))
+	mustBeParticipantGroup.GET("/collections/:collectionId/previews/:imageId", h.CreateDownloadImage(true))
 	mustBeParticipantGroup.DELETE("/collections/:collectionId/images/:imageId", h.DeleteImage)
 
 	mustBeParticipantGroup.GET("/collections/:collectionId/participants", h.GetParticipants)

@@ -24,7 +24,7 @@ func NewHandler(
 
 	microserviceClient := resty.New().
 		SetTimeout(3 * time.Second).
-		SetBaseURL("http://localhost:8081")
+		SetBaseURL("http://imageprocessor:8081")
 
 	return &Handler{
 		UserService:       userService,
