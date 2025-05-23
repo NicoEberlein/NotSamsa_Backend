@@ -7,7 +7,7 @@ import (
 )
 
 func ConnectToS3() *minio.Client {
-	endpoint := "localhost:9000"
+	endpoint := "s3:9000"
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4("notsamsa", "notsamsapw", ""),
 		Secure: false,

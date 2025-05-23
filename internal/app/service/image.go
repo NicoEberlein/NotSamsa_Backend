@@ -9,6 +9,9 @@ import (
 	"github.com/minio/minio-go/v7"
 	"image"
 	"io"
+	"net/url"
+	"strings"
+	"time"
 )
 
 type ImageService struct {
@@ -16,22 +19,22 @@ type ImageService struct {
 	S3              *minio.Client
 }
 
-func (s *ImageService) FindById(ctx context.Context, id string) (*domain.Image, error) {
+func (s *ImageService) FindById(ctx context.Context, id string, preview bool) (*domain.Image, error) {
 
-	image, err := s.ImageRepository.FindById(ctx, id)
+	im, err := s.ImageRepository.FindById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(image.Path)
+	path := im.Path
+	if preview {
+		path = strings.Replace(path, "images", "previews", 1)
+	}
 
-	obj, err := s.S3.GetObject(ctx, "notsamsa", image.Path, minio.GetObjectOptions{})
+	obj, err := s.S3.GetObject(ctx, "notsamsa", path, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
-
-	abcde, _ := obj.Stat()
-	fmt.Println(abcde.ContentType)
 
 	var buf bytes.Buffer
 	_, err = io.Copy(&buf, obj)
@@ -39,16 +42,17 @@ func (s *ImageService) FindById(ctx context.Context, id string) (*domain.Image, 
 		return nil, err
 	}
 
-	fmt.Printf("LEn: %d", buf.Len())
+	im.ImageBinary = &buf
 
-	image.ImageBinary = &buf
-	return image, nil
+	s.populateWithPresignedURLs(ctx, im)
+
+	return im, nil
 }
 
 func (s *ImageService) Create(ctx context.Context, image *domain.Image) error {
 	image.Id = uuid.New().String()
 
-	image.Path = fmt.Sprintf("collection/%s/image/%s", image.CollectionId, image.Id)
+	image.Path = fmt.Sprintf("collection/%s/images/%s", image.CollectionId, image.Id)
 
 	_, err := s.S3.PutObject(
 		ctx,
@@ -91,11 +95,15 @@ func (s *ImageService) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
+
+	err = s.S3.RemoveObject(ctx, "notsamsa", strings.Replace(im.Path, "images", "previews", 1), minio.RemoveObjectOptions{})
 	return nil
 }
 
 func (s *ImageService) FindByCollection(ctx context.Context, collectionId string) ([]*domain.Image, error) {
-	return s.ImageRepository.FindByCollection(ctx, collectionId)
+	images, err := s.ImageRepository.FindByCollection(ctx, collectionId)
+	s.populateWithPresignedURLs(ctx, images...)
+	return images, err
 }
 
 func (s *ImageService) decodeImage(reader io.Reader) (*image.Image, error) {
@@ -104,4 +112,24 @@ func (s *ImageService) decodeImage(reader io.Reader) (*image.Image, error) {
 		return nil, err
 	}
 	return &im, nil
+}
+
+func (s *ImageService) populateWithPresignedURLs(ctx context.Context, images ...*domain.Image) {
+	for _, image := range images {
+		url, err := s.S3.PresignedGetObject(
+			ctx,
+			"notsamsa",
+			fmt.Sprintf("collection/%s/previews/%s", image.CollectionId, image.Id),
+			time.Minute*5,
+			make(url.Values),
+		)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		urlString := url.String()
+		fmt.Println(urlString)
+		image.PreviewUrl = urlString
+	}
 }

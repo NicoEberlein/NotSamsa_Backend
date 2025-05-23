@@ -1,9 +1,11 @@
 package http
 
 import (
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/service"
 	"github.com/gin-gonic/gin"
+	"github.com/go-resty/resty/v2"
 	"math"
+	"time"
 )
 
 type Handler struct {
@@ -11,6 +13,7 @@ type Handler struct {
 	CollectionService *service.CollectionService
 	ImageService      *service.ImageService
 	Router            *gin.Engine
+	RestClient        *resty.Client
 }
 
 func NewHandler(
@@ -19,11 +22,16 @@ func NewHandler(
 	imageService *service.ImageService,
 	router *gin.Engine) *Handler {
 
+	microserviceClient := resty.New().
+		SetTimeout(3 * time.Second).
+		SetBaseURL("http://imageprocessor:8081")
+
 	return &Handler{
 		UserService:       userService,
 		CollectionService: collectionService,
 		ImageService:      imageService,
 		Router:            router,
+		RestClient:        microserviceClient,
 	}
 }
 
@@ -53,10 +61,14 @@ func Pageate[T any](items []T, page int, limit int) Page[T] {
 	}
 	itemSlice = items[start:end]
 
+	if len(itemSlice) == 0 {
+		itemSlice = make([]T, 0)
+	}
+
 	return Page[T]{
 		Items: itemSlice,
 		PageDetails: PageDetails{
-			TotalItems:  len(itemSlice),
+			TotalItems:  len(items),
 			TotalPages:  int(math.Ceil(float64(len(items)) / float64(limit))),
 			CurrentPage: page,
 			PageSize:    limit,

@@ -18,4 +18,4 @@ CREATE TABLE public.images (
 
 -- public.images foreign keys
 
-ALTER TABLE public.images ADD CONSTRAINT fk_collections_images FOREIGN KEY (collection_id) REFERENCES public.collections(id);
+ALTER TABLE public.images ADD CONSTRAINT fk_collections_images FOREIGN KEY (collection_id) REFERENCES public.collections(id) ON DELETE CASCADE;

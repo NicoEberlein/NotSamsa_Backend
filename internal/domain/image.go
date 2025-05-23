@@ -7,15 +7,16 @@ import (
 )
 
 type Image struct {
-	Id           string      `gorm:"type:uuid;primary_key"`
-	CollectionId string      `json:"-"`
-	Collection   *Collection `gorm:"foreignKey:CollectionId" json:"-"`
-	Path         string      `json:"-"`
-	Name         string
-	Size         int64
-	Format       string
-	UploadedAt   time.Time
+	Id           string        `gorm:"type:uuid;primary_key" json:"id"`
+	CollectionId string        `json:"-"`
+	Collection   *Collection   `gorm:"foreignKey:CollectionId" json:"-"`
+	Path         string        `json:"-"`
+	Name         string        `json:"name"`
+	Size         int64         `json:"size"`
+	Format       string        `json:"format"`
+	UploadedAt   time.Time     `json:"uploadedAt"`
 	ImageBinary  *bytes.Buffer `gorm:"-" json:"-"`
+	PreviewUrl   string        `gorm:"-" json:"previewUrl"`
 }
 
 func NewImage(collectionId string, format string, name string, size int64, uploadedAt time.Time, imageBinary *bytes.Buffer) *Image {

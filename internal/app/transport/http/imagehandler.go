@@ -10,12 +10,20 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
 )
+
+type CreatePreviewBody struct {
+	GetFromPath string
+	SaveToPath  string
+	Width       int
+	Height      int
+}
 
 func (h *Handler) UploadImage(c *gin.Context) {
 	collectionId := c.Param("collectionId")
@@ -42,8 +50,7 @@ func (h *Handler) UploadImage(c *gin.Context) {
 		}
 
 		var buf bytes.Buffer
-		written, err := io.Copy(&buf, f)
-		fmt.Printf("Written: %d Len: %d\n", written, buf.Len())
+		_, err = io.Copy(&buf, f)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
@@ -54,49 +61,62 @@ func (h *Handler) UploadImage(c *gin.Context) {
 			return
 		}
 
-		fmt.Printf("Written: %d Len: %d\n", written, buf.Len())
-
 		imageModel := domain.NewImage(collectionId, format, file.Filename, int64(buf.Len()), time.Now(), &buf)
-		fmt.Printf("%+v \n", imageModel)
 
 		if err = h.ImageService.Create(c, imageModel); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		} else {
-			c.JSON(http.StatusOK, gin.H{"message": "successfully created"})
 		}
+
+		// Send create review request
+		_, err = h.RestClient.R().
+			SetContext(c).
+			SetBody(&CreatePreviewBody{
+				GetFromPath: imageModel.Path,
+				SaveToPath:  strings.Replace(imageModel.Path, "images", "previews", 1),
+				Width:       600,
+				Height:      300,
+			}).Post("/generate-preview")
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"success": "accepted"})
 	}
 }
 
-func (h *Handler) DownloadImage(c *gin.Context) {
+func (h *Handler) CreateDownloadImage(preview bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
 
-	imageId := c.Param("imageId")
-	if len(imageId) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "image Id required"})
-	}
+		imageId := c.Param("imageId")
+		if len(imageId) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "image Id required"})
+		}
 
-	im, err := h.ImageService.FindById(c, imageId)
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
+		im, err := h.ImageService.FindById(c, imageId, preview)
+		if err != nil {
+			if errors.Is(err, domain.ErrNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "image not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+
+		data := im.ImageBinary.Bytes()
+
+		c.Header("Content-Disposition", "attachment; filename="+im.Name)
+		c.Header("Content-Type", fmt.Sprintf("image/%s", im.Format))
+		c.Header("Content-Length", fmt.Sprintf("%d", len(data)))
+
+		_, err = c.Writer.Write(data)
+		if err != nil {
+			c.Writer.WriteHeader(http.StatusInternalServerError)
+		}
+		c.Writer.WriteHeader(http.StatusOK)
+
 	}
-
-	data := im.ImageBinary.Bytes()
-	fmt.Println(len(data))
-
-	c.Header("Content-Disposition", "attachment; filename="+im.Name)
-	c.Header("Content-Type", fmt.Sprintf("image/%s", im.Format))
-	c.Header("Content-Length", fmt.Sprintf("%d", len(data)))
-
-	_, err = c.Writer.Write(data)
-	if err != nil {
-		c.Writer.WriteHeader(http.StatusInternalServerError)
-	}
-	c.Writer.WriteHeader(http.StatusOK)
-
 }
 
 func (h *Handler) DeleteImage(c *gin.Context) {

@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
-	gormstore "github.com/NicoEberlein/NotSamsa_Backend/internal/storage/gorm"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/service"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/storage/gorm"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/transport/http"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/storage/s3"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/transport/http"
 	"github.com/gin-gonic/gin"
 	"github.com/minio/minio-go/v7"
 	"gorm.io/gorm"
@@ -35,14 +35,16 @@ func main() {
 	Config = GlobalConfig{
 		DB: db,
 		S3: sss,
-		ImageService: &service.ImageService{
-			ImageRepository: gormstore.NewImageRepository(db),
-			S3:              sss,
-		},
+	}
+
+	imageRepository := gormstore.NewImageRepository(Config.DB)
+
+	Config.ImageService = &service.ImageService{
+		ImageRepository: imageRepository,
+		S3:              sss,
 	}
 
 	userRepository := gormstore.NewUserRepository(Config.DB)
-	//userRepository := mock.NewUserRepository()
 
 	Config.UserService = &service.UserService{
 		UserRepository: userRepository,
@@ -51,6 +53,8 @@ func main() {
 	Config.CollectionService = &service.CollectionService{
 		CollectionRepository: gormstore.NewImageCollectionRepository(db),
 		UserRepository:       userRepository,
+		ImageRepository:      imageRepository,
+		S3:                   Config.S3,
 	}
 
 	Config.Router = gin.Default()

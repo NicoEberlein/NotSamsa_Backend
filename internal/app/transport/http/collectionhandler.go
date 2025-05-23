@@ -10,14 +10,15 @@ import (
 )
 
 type PostCollectionModel struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description,omitempty"`
-	Latitude    *float64 `json:"latitude,omitempty"`
-	Longitude   *float64 `json:"longitude,omitempty"`
+	Name           string   `json:"name"`
+	Description    string   `json:"description,omitempty"`
+	Latitude       *float64 `json:"latitude,omitempty"`
+	Longitude      *float64 `json:"longitude,omitempty"`
+	PreviewImageId *string  `json:"previewImageId,omitempty"`
 }
 
 type PostParticipantModel struct {
-	Ids []string `json:"userIds"`
+	Mails []string `json:"userMails"`
 }
 
 func (h *Handler) PostImageCollection(c *gin.Context) {
@@ -110,7 +111,10 @@ func (h *Handler) GetCollection(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
 		return
 	}
-	collection, err := h.CollectionService.FindById(c, id)
+
+	userId := c.GetString("user")
+
+	collection, err := h.CollectionService.FindById(c, id, &userId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -130,6 +134,8 @@ func (h *Handler) GetParticipants(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
 	}
 
+	userId := c.GetString("user")
+
 	page, err0 := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, err1 := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
@@ -138,7 +144,7 @@ func (h *Handler) GetParticipants(c *gin.Context) {
 		limit = 10
 	}
 
-	collection, err := h.CollectionService.FindById(c, id)
+	collection, err := h.CollectionService.FindById(c, id, &userId)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -165,11 +171,8 @@ func (h *Handler) AddParticipant(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("participant: %+v", participant)
-
-	for _, userId := range participant.Ids {
-		fmt.Println(userId)
-		err := h.CollectionService.AddParticipant(c, collectionId, userId)
+	for _, mail := range participant.Mails {
+		err := h.CollectionService.AddParticipant(c, collectionId, mail)
 		if err != nil {
 			if errors.Is(err, domain.ErrNotFound) {
 				c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -223,11 +226,13 @@ func (h *Handler) PatchCollection(c *gin.Context) {
 
 	if err := h.CollectionService.Patch(c,
 		&domain.Collection{
-			Id:          collectionId,
-			Name:        postCollection.Name,
-			Description: postCollection.Description,
-			Latitude:    postCollection.Latitude,
-			Longitude:   postCollection.Longitude}); err != nil {
+			Id:             collectionId,
+			Name:           postCollection.Name,
+			Description:    postCollection.Description,
+			Latitude:       postCollection.Latitude,
+			Longitude:      postCollection.Longitude,
+			PreviewImageId: postCollection.PreviewImageId,
+		}); err != nil {
 
 		if errors.Is(err, domain.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

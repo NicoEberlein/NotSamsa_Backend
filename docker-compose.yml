@@ -1,4 +1,5 @@
 services:
+
   db:
     image: postgres
     shm_size: 128mb
@@ -6,10 +7,18 @@ services:
       POSTGRES_PASSWORD: notsamsapw
       POSTGRES_DB: notsamsa
       POSTGRES_USER: notsamsa
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notsamsa -d notsamsa -q"]
+      interval: "5s"
+      timeout: "30s"
+      retries: 3
+      start_period: "3s"
     ports:
       - "5432:5432"
     volumes:
       - "pgdata:/var/lib/postgresql/data"
+    command: -c 'max_connections=200'
+
   s3:
     image: "bitnami/minio:latest"
     ports:
@@ -21,6 +30,7 @@ services:
       MINIO_ROOT_USER: notsamsa
       MINIO_ROOT_PASSWORD: notsamsapw
       MINIO_DEFAULT_BUCKETS: notsamsa
+      MINIO_SERVER_URL: "http://localhost:9000"  
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -28,6 +38,46 @@ services:
       retries: 3
       start_period: 30s
     restart: "unless-stopped"
+
+
+  migrate:
+    image: "migrate/migrate"
+    volumes:
+      - "./migrations:/migrations"
+    command: "-path=/migrations/ -database postgres://notsamsa:notsamsapw@db:5432/notsamsa?sslmode=disable up"
+    depends_on:
+      db:
+        condition: "service_healthy"
+
+
+  backend:
+    image: "notsamsa"
+    build:
+      context: "."
+      dockerfile: "Dockerfile"
+      args:
+        OUTPUT_FILE: "app"
+        GO_FILE: "cmd/app/main.go"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - "db"
+      - "s3"
+      - "migrate"
+
+  imageprocessor:
+    build:
+      context: "."
+      dockerfile: "Dockerfile"
+      args:
+        OUTPUT_FILE: "imageprocessor"
+        GO_FILE: "cmd/imageprocessor/main.go"
+    ports:
+      - "8081:8081"
+    depends_on:
+      - "db"
+      - "s3"
+      - "migrate"
 
 volumes:
   pgdata:

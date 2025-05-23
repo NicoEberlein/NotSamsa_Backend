@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/NicoEberlein/NotSamsa_Backend/internal/app/service"
+	mock2 "github.com/NicoEberlein/NotSamsa_Backend/internal/app/storage/mock"
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/service"
-	"github.com/NicoEberlein/NotSamsa_Backend/internal/storage/mock"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -16,10 +16,10 @@ import (
 
 func setupCollectionTestHandler() *Handler {
 	gin.SetMode(gin.TestMode)
-	userRepository := mock.NewUserRepository()
+	userRepository := mock2.NewUserRepository()
 	handler := NewHandler(
 		&service.UserService{userRepository},
-		&service.CollectionService{mock.NewMockCollectionRepository(), userRepository},
+		&service.CollectionService{mock2.NewMockCollectionRepository(), userRepository},
 		nil,
 		gin.Default())
 

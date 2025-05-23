@@ -6,6 +6,7 @@ import (
 	"github.com/NicoEberlein/NotSamsa_Backend/internal/domain"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"slices"
 )
 
 type ImageCollectionRepository struct {
@@ -101,13 +102,14 @@ func (r *ImageCollectionRepository) Delete(ctx context.Context, id string) error
 
 func (r *ImageCollectionRepository) FindByUser(ctx context.Context, userId string) ([]*domain.Collection, error) {
 
-	imageCollections := make([]*domain.Collection, 0)
+	imageCollectionsOwner := make([]*domain.Collection, 0)
+	imageCollectionsParticipant := make([]*domain.Collection, 0)
 
 	tx := r.db.WithContext(ctx).
 		Model(&domain.Collection{}).
 		Preload(clause.Associations).
 		Where("owner_id = ?", userId).
-		Find(&imageCollections)
+		Find(&imageCollectionsOwner)
 
 	if tx.Error != nil {
 		if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
@@ -117,7 +119,20 @@ func (r *ImageCollectionRepository) FindByUser(ctx context.Context, userId strin
 		}
 	}
 
-	return imageCollections, nil
+	tx = r.db.WithContext(ctx).
+		Model(&domain.Collection{}).
+		Preload(clause.Associations).
+		Joins("JOIN collection_participants ON collection_participants.collection_id = collections.id").
+		Where("collection_participants.user_id = ?", userId).
+		Find(&imageCollectionsParticipant)
+
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	allCollections := slices.Concat(imageCollectionsOwner, imageCollectionsParticipant)
+
+	return allCollections, nil
 }
 
 func (r *ImageCollectionRepository) AddParticipant(ctx context.Context, collectionId string, userId string) error {
